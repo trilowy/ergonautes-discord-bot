@@ -1,0 +1,9 @@
+.{
+    .server = .{
+        .port = 3000,
+    },
+    .log = .{
+        .json_format = false,
+        .level = .Debug,
+    },
+}
