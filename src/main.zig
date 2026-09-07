@@ -1,5 +1,6 @@
 const std = @import("std");
 const httpz = @import("httpz");
+const curl = @import("curl");
 const log = @import("server/logger.zig");
 const App = @import("server/state.zig").App;
 const config_mod = @import("server/config.zig");
@@ -7,6 +8,7 @@ const Config = config_mod.Config;
 const loadConfig = config_mod.loadConfig;
 const setGracefulShutdown = @import("server/shutdown.zig").setGracefulShutdown;
 const handlers = @import("handlers.zig");
+const commands = @import("commands.zig");
 
 pub fn main() !void {
     var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
@@ -20,6 +22,19 @@ pub fn main() !void {
 
     try log.init(allocator, config.log);
     defer log.deinit();
+
+    const ca_bundle = try curl.allocCABundle(allocator);
+    defer ca_bundle.deinit();
+    var curl_client = try curl.Easy.init(.{
+        .ca_bundle = ca_bundle,
+    });
+    defer curl_client.deinit();
+
+    try commands.registerToDiscord(
+        allocator,
+        &curl_client,
+        config.discord,
+    );
 
     var app = App{
         .discord_config = config.discord,

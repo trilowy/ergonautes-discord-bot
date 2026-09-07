@@ -40,6 +40,9 @@ pub const DiscordConfig = struct {
 
     /// Discord token
     token: []const u8,
+
+    /// Discord API URL
+    api_url: []const u8,
 };
 
 const separator = "__";
@@ -82,6 +85,10 @@ pub fn loadConfig(allocator: std.mem.Allocator) !Config {
 
     if (getEnvVarOwned(allocator, discord ++ "TOKEN")) |token| {
         config.discord.token = token;
+    } else |_| {}
+
+    if (getEnvVarOwned(allocator, discord ++ "API_URL")) |api_url| {
+        config.discord.api_url = api_url;
     } else |_| {}
 
     return config;

@@ -38,7 +38,7 @@ jobs:
       - name: Build
         run: |
           echo "Building the project..."
-          zig build --release=safe
+          zig build --release=safe -Dtarget=x86_64-linux-gnu -Dcpu=baseline
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7

@@ -30,6 +30,7 @@ frequently asked questions.
 ```sh
 zig fetch --save git+https://github.com/karlseguin/http.zig#zig-0.15
 zig fetch --save git+https://github.com/karlseguin/log.zig#zig-0.15
+zig fetch --save=curl git+https://github.com/jiacai2050/zig-curl#0.15
 ```
 
 

@@ -16,6 +16,7 @@
         zig_0_15
         zls_0_15 # Zig LSP
         watchexec # During development, reload server on file change
+        curl
       ];
     };
   };
