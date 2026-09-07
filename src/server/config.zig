@@ -10,6 +10,9 @@ pub const Config = struct {
 
     /// Logger configuration
     log: LogConfig,
+
+    /// Discord configuration
+    discord: DiscordConfig,
 };
 
 /// Server configuration
@@ -25,6 +28,18 @@ pub const LogConfig = struct {
 
     /// Logging level of the application
     level: logz.Level,
+};
+
+/// Discord configuration
+pub const DiscordConfig = struct {
+    /// Bot app ID
+    app_id: []const u8,
+
+    /// Bot public key
+    public_key: []const u8,
+
+    /// Discord token
+    token: []const u8,
 };
 
 const separator = "__";
@@ -53,6 +68,20 @@ pub fn loadConfig(allocator: std.mem.Allocator) !Config {
         config.log.level = std.meta.stringToEnum(logz.Level, level) orelse {
             return error.InvalidLogLevel;
         };
+    } else |_| {}
+
+    const discord = prefix ++ "DISCORD" ++ separator;
+
+    if (getEnvVarOwned(allocator, discord ++ "APP_ID")) |app_id| {
+        config.discord.app_id = app_id;
+    } else |_| {}
+
+    if (getEnvVarOwned(allocator, discord ++ "PUBLIC_KEY")) |public_key| {
+        config.discord.public_key = public_key;
+    } else |_| {}
+
+    if (getEnvVarOwned(allocator, discord ++ "TOKEN")) |token| {
+        config.discord.token = token;
     } else |_| {}
 
     return config;

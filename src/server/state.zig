@@ -1,8 +1,11 @@
 const std = @import("std");
 const httpz = @import("httpz");
 const log = @import("../server/logger.zig");
+const DiscordConfig = @import("../server/config.zig").DiscordConfig;
 
 pub const App = struct {
+    discord_config: DiscordConfig,
+
     pub fn dispatch(self: *App, action: httpz.Action(*RequestContext), req: *httpz.Request, res: *httpz.Response) !void {
         var timer = try std.time.Timer.start();
 

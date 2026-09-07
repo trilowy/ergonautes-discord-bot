@@ -6,4 +6,9 @@
         .json_format = false,
         .level = .Debug,
     },
+    .discord = .{
+        .app_id = "default_app_id",
+        .public_key = "default_public_key",
+        .token = "default_token",
+    },
 }

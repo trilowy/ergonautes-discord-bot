@@ -21,7 +21,9 @@ pub fn main() !void {
     try log.init(allocator, config.log);
     defer log.deinit();
 
-    var app = App{};
+    var app = App{
+        .discord_config = config.discord,
+    };
 
     var server = try httpz.Server(*App).init(
         allocator,
