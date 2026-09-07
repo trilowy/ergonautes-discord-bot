@@ -5,6 +5,6 @@ pub fn health(_: *RequestContext, _: *httpz.Request, res: *httpz.Response) !void
     try res.json(.{ .status = "UP" }, .{});
 }
 
-pub fn hello(_: *RequestContext, _: *httpz.Request, res: *httpz.Response) !void {
+pub fn interactions(_: *RequestContext, _: *httpz.Request, res: *httpz.Response) !void {
     try res.json(.{ .hello = "world" }, .{});
 }

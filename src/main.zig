@@ -35,7 +35,7 @@ pub fn main() !void {
     var router = try server.router(.{});
 
     router.get("/monitoring/health", handlers.health, .{});
-    router.get("/hello", handlers.hello, .{});
+    router.post("/interactions", handlers.interactions, .{});
 
     log.info("Listening on http://127.0.0.1:3000", .{});
     try server.listen();
