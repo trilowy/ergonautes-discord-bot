@@ -84,4 +84,5 @@ jobs:
             -i ~/.ssh/github-actions-deploy \
             ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
             'chmod +x /home/${{ secrets.VPS_USER }}/ergonautes_discord_bot.new &&
-            mv /home/${{ secrets.VPS_USER }}/ergonautes_discord_bot.new /home/${{ secrets.VPS_USER }}/ergonautes_discord_bot'
+            mv /home/${{ secrets.VPS_USER }}/ergonautes_discord_bot.new /home/${{ secrets.VPS_USER }}/ergonautes_discord_bot &&
+            systemctl --user restart discordbot'
