@@ -47,3 +47,41 @@ jobs:
           path: zig-out/bin/ergonautes_discord_bot
           archive: false
           if-no-files-found: error
+
+  # Deployment job
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: prod
+
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: ergonautes_discord_bot
+          path: ./bin
+
+      - name: Configure SSH for VPS
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/github-actions-deploy
+          chmod 600 ~/.ssh/github-actions-deploy
+          ssh-keyscan -p "${{ secrets.VPS_SSH_PORT }}" -H "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Upload binary to VPS
+        run: |
+          scp \
+            -P "${{ secrets.VPS_SSH_PORT }}" \
+            -i ~/.ssh/github-actions-deploy \
+            ./bin/ergonautes_discord_bot \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/home/${{ secrets.VPS_USER }}/ergonautes_discord_bot.new
+
+      - name: Activate deployment
+        run: |
+          ssh \
+            -p "${{ secrets.VPS_SSH_PORT }}" \
+            -i ~/.ssh/github-actions-deploy \
+            ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} \
+            'chmod +x /home/${{ secrets.VPS_USER }}/ergonautes_discord_bot.new &&
+            mv /home/${{ secrets.VPS_USER }}/ergonautes_discord_bot.new /home/${{ secrets.VPS_USER }}/ergonautes_discord_bot'
