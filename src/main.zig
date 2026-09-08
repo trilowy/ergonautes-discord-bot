@@ -6,41 +6,43 @@ const App = @import("server/state.zig").App;
 const config_mod = @import("server/config.zig");
 const Config = config_mod.Config;
 const loadConfig = config_mod.loadConfig;
-const setGracefulShutdown = @import("server/shutdown.zig").setGracefulShutdown;
 const handlers = @import("handlers.zig");
 const DiscordClient = @import("DiscordClient.zig");
 
-pub fn main() !void {
-    var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
-    const allocator = debug_allocator.allocator();
-    defer _ = debug_allocator.deinit();
+pub fn main(init: std.process.Init) !void {
+    const config = try loadConfig(init.environ_map);
 
-    var arena = std.heap.ArenaAllocator.init(allocator);
-    defer arena.deinit();
-
-    const config = try loadConfig(arena.allocator());
-
-    try log.init(allocator, config.log);
+    try log.init(init.io, init.gpa, config.log);
     defer log.deinit();
 
-    var discord_client = try DiscordClient.init(allocator, config.discord);
-    defer discord_client.deinit(allocator);
+    var discord_client = try DiscordClient.init(
+        init.io,
+        init.gpa,
+        config.discord,
+    );
+    defer discord_client.deinit();
 
-    try discord_client.registerCommandsToDiscord(allocator);
+    try discord_client.registerCommandsToDiscord(init.gpa);
 
     var app = App{
+        .io = init.io,
         .discord_config = config.discord,
     };
 
     var server = try httpz.Server(*App).init(
-        allocator,
+        init.io,
+        init.gpa,
         .{ .address = .localhost(config.server.port) },
         &app,
     );
-    setGracefulShutdown(&server);
+    defer {
+        // Clean shutdown, finishes serving any live requests
+        log.info("Shutting down server gracefully", .{});
+        server.stop();
+        server.deinit();
+    }
 
     var router = try server.router(.{});
-
     router.get("/monitoring/health", handlers.health, .{});
     router.post("/interactions", handlers.interactions, .{});
 

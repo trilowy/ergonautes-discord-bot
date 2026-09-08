@@ -4,10 +4,11 @@ const log = @import("../server/logger.zig");
 const DiscordConfig = @import("../server/config.zig").DiscordConfig;
 
 pub const App = struct {
+    io: std.Io,
     discord_config: DiscordConfig,
 
     pub fn dispatch(self: *App, action: httpz.Action(*RequestContext), req: *httpz.Request, res: *httpz.Response) !void {
-        var timer = try std.time.Timer.start();
+        var start = std.Io.Timestamp.now(self.io, .awake);
 
         var ctx = RequestContext{
             .app = self,
@@ -15,8 +16,9 @@ pub const App = struct {
 
         try action(&ctx, req, res);
 
-        const elapsed = timer.lap() / 1_000_000; // ns -> ms
-        log.debug("{} {s} {d}ms", .{ req.method, req.url.path, elapsed });
+        const elapsed_ms = start.untilNow(self.io, .awake).toMilliseconds();
+
+        log.debug("{} {s} {d}ms", .{ req.method, req.url.path, elapsed_ms });
     }
 
     pub fn notFound(_: *App, req: *httpz.Request, res: *httpz.Response) !void {

@@ -2,14 +2,18 @@ const std = @import("std");
 const logz = @import("logz");
 const LogConfig = @import("config.zig").LogConfig;
 
-pub fn init(allocator: std.mem.Allocator, config: LogConfig) !void {
+pub fn init(
+    io: std.Io,
+    allocator: std.mem.Allocator,
+    config: LogConfig,
+) !void {
     const encoding: logz.Config.Encoding =
         if (config.json_format)
             .json
         else
             .logfmt;
 
-    try logz.setup(allocator, .{
+    try logz.setup(io, allocator, .{
         .level = config.level,
         .encoding = encoding,
     });

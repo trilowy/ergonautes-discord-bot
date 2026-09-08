@@ -1,6 +1,4 @@
 const std = @import("std");
-const getEnvVarOwned = std.process.getEnvVarOwned;
-const parseInt = std.fmt.parseInt;
 const logz = @import("logz");
 
 /// Global configuration
@@ -48,48 +46,50 @@ pub const DiscordConfig = struct {
 const separator = "__";
 const prefix = "EDB" ++ separator;
 
-pub fn loadConfig(allocator: std.mem.Allocator) !Config {
+pub fn loadConfig(
+    environ_map: *std.process.Environ.Map,
+) !Config {
     var config: Config = @import("config_default.zon");
 
     const server = prefix ++ "SERVER" ++ separator;
 
-    if (getEnvVarOwned(allocator, server ++ "PORT")) |port| {
-        config.server.port = try parseInt(u16, port, 10);
-    } else |_| {}
+    if (environ_map.get(server ++ "PORT")) |port| {
+        config.server.port = try std.fmt.parseInt(u16, port, 10);
+    }
 
     const log = prefix ++ "LOG" ++ separator;
 
-    if (getEnvVarOwned(allocator, log ++ "JSON_FORMAT")) |json_format| {
+    if (environ_map.get(log ++ "JSON_FORMAT")) |json_format| {
         config.log.json_format =
             if (std.mem.eql(u8, json_format, "true"))
                 true
             else
                 false;
-    } else |_| {}
+    }
 
-    if (getEnvVarOwned(allocator, log ++ "LEVEL")) |level| {
+    if (environ_map.get(log ++ "LEVEL")) |level| {
         config.log.level = std.meta.stringToEnum(logz.Level, level) orelse {
             return error.InvalidLogLevel;
         };
-    } else |_| {}
+    }
 
     const discord = prefix ++ "DISCORD" ++ separator;
 
-    if (getEnvVarOwned(allocator, discord ++ "APP_ID")) |app_id| {
+    if (environ_map.get(discord ++ "APP_ID")) |app_id| {
         config.discord.app_id = app_id;
-    } else |_| {}
+    }
 
-    if (getEnvVarOwned(allocator, discord ++ "PUBLIC_KEY")) |public_key| {
+    if (environ_map.get(discord ++ "PUBLIC_KEY")) |public_key| {
         config.discord.public_key = public_key;
-    } else |_| {}
+    }
 
-    if (getEnvVarOwned(allocator, discord ++ "TOKEN")) |token| {
+    if (environ_map.get(discord ++ "TOKEN")) |token| {
         config.discord.token = token;
-    } else |_| {}
+    }
 
-    if (getEnvVarOwned(allocator, discord ++ "API_URL")) |api_url| {
+    if (environ_map.get(discord ++ "API_URL")) |api_url| {
         config.discord.api_url = api_url;
-    } else |_| {}
+    }
 
     return config;
 }

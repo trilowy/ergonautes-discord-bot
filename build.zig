@@ -38,18 +38,12 @@ pub fn build(b: *std.Build) void {
     const logz = b.dependency("logz", dep_opts);
     exe_mod.addImport("logz", logz.module("logz"));
 
-    const curl = b.dependency("curl", .{});
-    exe_mod.addImport("curl", curl.module("curl"));
-
     // This creates another `std.Build.Step.Compile`, but this one builds an executable
     // rather than a static library.
     const exe = b.addExecutable(.{
         .name = "ergonautes_discord_bot",
         .root_module = exe_mod,
     });
-
-    // For curl
-    exe.linkLibC();
 
     // Check step for the LSP without install
     const check = b.step("check", "Check if it compiles");

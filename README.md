@@ -6,7 +6,7 @@ frequently asked questions.
 
 ## Requirements
 
-- [Zig] 0.15.2
+- [Zig] 0.16.0
 - [watchexec]: optional, for reload on file change
 - [direnv] + [Nix flake]: optional, auto-install Zig and watchexec when
   entering project directory
@@ -28,9 +28,8 @@ frequently asked questions.
 ## Update dependencies
 
 ```sh
-zig fetch --save git+https://github.com/karlseguin/http.zig#zig-0.15
-zig fetch --save git+https://github.com/karlseguin/log.zig#zig-0.15
-zig fetch --save=curl git+https://github.com/jiacai2050/zig-curl#0.15
+zig fetch --save git+https://github.com/karlseguin/http.zig#master
+zig fetch --save git+https://github.com/karlseguin/log.zig#master
 ```
 
 

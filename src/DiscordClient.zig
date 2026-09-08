@@ -1,57 +1,51 @@
-const curl = @import("curl");
 const std = @import("std");
 const log = @import("server/logger.zig");
 const DiscordConfig = @import("server/config.zig").DiscordConfig;
+const Headers = std.http.Client.Request.Headers;
 
 const Self = @This();
 
-curl_client: curl.Easy,
-authorization_header: [:0]const u8,
-command_url: [:0]const u8,
+arena: std.heap.ArenaAllocator,
+http_client: std.http.Client,
+authorization_header: Headers.Value,
+command_url: []const u8,
 
 pub fn init(
+    io: std.Io,
     allocator: std.mem.Allocator,
     discord: DiscordConfig,
 ) !Self {
-    const authorization_header = try std.fmt.allocPrintSentinel(
-        allocator,
-        "Authorization: Bot {s}",
-        .{discord.token},
-        0,
-    );
-    errdefer allocator.free(authorization_header);
+    var arena_allocator = std.heap.ArenaAllocator.init(allocator);
+    errdefer arena_allocator.deinit();
+    const arena = arena_allocator.allocator();
 
-    const command_url = try std.fmt.allocPrintSentinel(
-        allocator,
+    var http_client: std.http.Client = .{ .allocator = allocator, .io = io };
+    errdefer http_client.deinit();
+
+    const authorization_header_string = try std.fmt.allocPrint(
+        arena,
+        "Bot {s}",
+        .{discord.token},
+    );
+    const authorization_header = Headers.Value{ .override = authorization_header_string };
+
+    const command_url = try std.fmt.allocPrint(
+        arena,
         "{s}/applications/{s}/commands",
         .{ discord.api_url, discord.app_id },
-        0,
     );
-    errdefer allocator.free(command_url);
-
-    const ca_bundle = try curl.allocCABundle(allocator);
-    errdefer ca_bundle.deinit();
-
-    var curl_client = try curl.Easy.init(.{
-        .ca_bundle = ca_bundle,
-    });
-    errdefer curl_client.deinit();
 
     return Self{
-        .curl_client = curl_client,
+        .arena = arena_allocator,
+        .http_client = http_client,
         .authorization_header = authorization_header,
         .command_url = command_url,
     };
 }
 
-pub fn deinit(
-    self: *Self,
-    allocator: std.mem.Allocator,
-) void {
-    self.curl_client.deinit();
-    self.curl_client.ca_bundle.?.deinit();
-    allocator.free(self.command_url);
-    allocator.free(self.authorization_header);
+pub fn deinit(self: *Self) void {
+    self.http_client.deinit();
+    self.arena.deinit();
 }
 
 pub fn registerCommandsToDiscord(
@@ -59,21 +53,18 @@ pub fn registerCommandsToDiscord(
     allocator: std.mem.Allocator,
 ) !void {
     // TODO: register Discord commands at server startup
-    var headers: curl.Easy.Headers = .{};
-    defer headers.deinit();
-    try headers.add(self.authorization_header);
+    var response_body: std.Io.Writer.Allocating = .init(allocator);
+    defer response_body.deinit();
 
-    try self.curl_client.setUrl(self.command_url);
-    try self.curl_client.setHeaders(headers);
-    try self.curl_client.setMethod(.GET);
+    const response = try self.http_client.fetch(.{
+        .location = .{ .url = self.command_url },
+        .method = .GET,
+        .response_writer = &response_body.writer,
+        .headers = .{ .authorization = self.authorization_header },
+    });
 
-    var writer = std.Io.Writer.Allocating.init(allocator);
-    defer writer.deinit();
-    try self.curl_client.setWriter(&writer.writer);
-
-    const resp = try self.curl_client.perform();
     log.info(
         "Status code: {d} Body: {s}",
-        .{ resp.status_code, writer.writer.buffered() },
+        .{ response.status, response_body.written() },
     );
 }
