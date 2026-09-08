@@ -8,7 +8,7 @@ const Config = config_mod.Config;
 const loadConfig = config_mod.loadConfig;
 const setGracefulShutdown = @import("server/shutdown.zig").setGracefulShutdown;
 const handlers = @import("handlers.zig");
-const commands = @import("commands.zig");
+const DiscordClient = @import("DiscordClient.zig");
 
 pub fn main() !void {
     var debug_allocator: std.heap.DebugAllocator(.{}) = .init;
@@ -23,18 +23,10 @@ pub fn main() !void {
     try log.init(allocator, config.log);
     defer log.deinit();
 
-    const ca_bundle = try curl.allocCABundle(allocator);
-    defer ca_bundle.deinit();
-    var curl_client = try curl.Easy.init(.{
-        .ca_bundle = ca_bundle,
-    });
-    defer curl_client.deinit();
+    var discord_client = try DiscordClient.init(allocator, config.discord);
+    defer discord_client.deinit(allocator);
 
-    try commands.registerToDiscord(
-        allocator,
-        &curl_client,
-        config.discord,
-    );
+    try discord_client.registerCommandsToDiscord(allocator);
 
     var app = App{
         .discord_config = config.discord,
