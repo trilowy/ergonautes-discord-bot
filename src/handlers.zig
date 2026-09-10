@@ -1,6 +1,7 @@
 const std = @import("std");
 const httpz = @import("httpz");
 const RequestContext = @import("server/state.zig").RequestContext;
+const log = @import("server/logger.zig");
 
 pub fn health(_: *RequestContext, _: *httpz.Request, res: *httpz.Response) !void {
     try res.json(.{ .status = "UP" }, .{});
@@ -8,16 +9,19 @@ pub fn health(_: *RequestContext, _: *httpz.Request, res: *httpz.Response) !void
 
 pub fn interactions(ctx: *RequestContext, req: *httpz.Request, res: *httpz.Response) !void {
     const signature = req.headers.get("X-Signature-Ed25519") orelse {
+        log.warn("Missing 'X-Signature-Ed25519' header", .{});
         res.status = 401;
         return;
     };
 
     const timestamp = req.headers.get("X-Signature-Timestamp") orelse {
+        log.warn("Missing 'X-Signature-Timestamp' header", .{});
         res.status = 401;
         return;
     };
 
     const body = req.body() orelse {
+        log.warn("Missing body", .{});
         res.status = 401;
         return;
     };
@@ -26,7 +30,8 @@ pub fn interactions(ctx: *RequestContext, req: *httpz.Request, res: *httpz.Respo
         signature,
         timestamp,
         body,
-    ) catch {
+    ) catch |err| {
+        log.warn("Auth failed: {}", .{err});
         res.status = 401;
         return;
     };
@@ -35,10 +40,13 @@ pub fn interactions(ctx: *RequestContext, req: *httpz.Request, res: *httpz.Respo
 
     switch (interaction.type) {
         .ping => {
+            log.info("ping request", .{});
             try res.json(.{ .type = InteractionTypeResponse.pong }, .{});
         },
         .application_command => {
+            log.info("application_command request", .{});
             const data = interaction.data orelse {
+                log.warn("Missing data", .{});
                 res.status = 400;
                 return;
             };
@@ -60,11 +68,12 @@ pub fn interactions(ctx: *RequestContext, req: *httpz.Request, res: *httpz.Respo
 
                 try res.json(interaction_response, .{});
             } else {
-                // Unknown command
+                log.warn("Unknown command", .{});
                 res.status = 400;
             }
         },
         else => {
+            log.warn("Unknown interaction", .{});
             res.status = 400;
         },
     }
