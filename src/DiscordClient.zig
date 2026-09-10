@@ -10,6 +10,9 @@ http_client: std.http.Client,
 authorization_header: Headers.Value,
 command_url: []const u8,
 
+const discord_user_agent = Headers.Value{ .override = "DiscordBot (https://ziglang.org, 0.16.0)" };
+const json_content_type = Headers.Value{ .override = "application/json" };
+
 pub fn init(
     io: std.Io,
     allocator: std.mem.Allocator,
@@ -85,8 +88,9 @@ pub fn registerCommandsToDiscord(
         .payload = payload,
         .response_writer = &response_body.writer,
         .headers = .{
-            .content_type = .{ .override = "application/json" },
+            .user_agent = discord_user_agent,
             .authorization = self.authorization_header,
+            .content_type = json_content_type,
         },
     });
 
