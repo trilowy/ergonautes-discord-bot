@@ -8,13 +8,13 @@ pub fn health(_: *RequestContext, _: *httpz.Request, res: *httpz.Response) !void
 }
 
 pub fn interactions(ctx: *RequestContext, req: *httpz.Request, res: *httpz.Response) !void {
-    const signature = req.headers.get("X-Signature-Ed25519") orelse {
+    const signature = req.header("x-signature-ed25519") orelse {
         log.warn("Missing 'X-Signature-Ed25519' header", .{});
         res.status = 401;
         return;
     };
 
-    const timestamp = req.headers.get("X-Signature-Timestamp") orelse {
+    const timestamp = req.header("x-signature-timestamp") orelse {
         log.warn("Missing 'X-Signature-Timestamp' header", .{});
         res.status = 401;
         return;
