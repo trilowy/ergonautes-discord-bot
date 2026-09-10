@@ -1,6 +1,5 @@
 const std = @import("std");
 const httpz = @import("httpz");
-const curl = @import("curl");
 const log = @import("server/logger.zig");
 const App = @import("server/state.zig").App;
 const config_mod = @import("server/config.zig");
@@ -8,6 +7,7 @@ const Config = config_mod.Config;
 const loadConfig = config_mod.loadConfig;
 const handlers = @import("handlers.zig");
 const DiscordClient = @import("DiscordClient.zig");
+const AuthService = @import("AuthService.zig");
 
 pub fn main(init: std.process.Init) !void {
     const config = try loadConfig(init.environ_map);
@@ -25,9 +25,11 @@ pub fn main(init: std.process.Init) !void {
     // Register Discord commands at server startup
     try discord_client.registerCommandsToDiscord(init.gpa);
 
+    const auth_service = try AuthService.init(config.discord);
+
     var app = App{
         .io = init.io,
-        .discord_config = config.discord,
+        .auth_service = auth_service,
     };
 
     var server = try httpz.Server(*App).init(

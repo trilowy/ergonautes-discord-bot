@@ -2,10 +2,11 @@ const std = @import("std");
 const httpz = @import("httpz");
 const log = @import("../server/logger.zig");
 const DiscordConfig = @import("../server/config.zig").DiscordConfig;
+const AuthService = @import("../AuthService.zig");
 
 pub const App = struct {
     io: std.Io,
-    discord_config: DiscordConfig,
+    auth_service: AuthService,
 
     pub fn dispatch(self: *App, action: httpz.Action(*RequestContext), req: *httpz.Request, res: *httpz.Response) !void {
         var start = std.Io.Timestamp.now(self.io, .awake);
