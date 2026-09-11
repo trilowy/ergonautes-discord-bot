@@ -13,21 +13,18 @@ pub fn interactions(ctx: *RequestContext, req: *httpz.Request, res: *httpz.Respo
         res.status = 401;
         return;
     };
-    log.info("'X-Signature-Ed25519' header: '{s}'", .{signature});
 
     const timestamp = req.header("x-signature-timestamp") orelse {
         log.warn("Missing 'X-Signature-Timestamp' header", .{});
         res.status = 401;
         return;
     };
-    log.info("'X-Signature-Timestamp' header: '{s}'", .{timestamp});
 
     const body = req.body() orelse {
         log.warn("Missing body", .{});
         res.status = 401;
         return;
     };
-    log.info("Body: '{s}'", .{body});
 
     ctx.app.auth_service.verifyDiscordRequest(
         signature,
@@ -39,15 +36,18 @@ pub fn interactions(ctx: *RequestContext, req: *httpz.Request, res: *httpz.Respo
         return;
     };
 
-    const interaction = try req.json(InteractionRequest) orelse return;
+    const interaction = try std.json.parseFromSliceLeaky(
+        InteractionRequest,
+        req.arena,
+        body,
+        .{ .ignore_unknown_fields = true },
+    );
 
     switch (interaction.type) {
         .ping => {
-            log.info("ping request", .{});
             try res.json(.{ .type = InteractionTypeResponse.pong }, .{});
         },
         .application_command => {
-            log.info("application_command request", .{});
             const data = interaction.data orelse {
                 log.warn("Missing data", .{});
                 res.status = 400;
@@ -85,7 +85,7 @@ pub fn interactions(ctx: *RequestContext, req: *httpz.Request, res: *httpz.Respo
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object
 const InteractionRequest = struct {
     type: InteractionTypeRequest,
-    data: ?ApplicationCommandDataRequest,
+    data: ?ApplicationCommandDataRequest = null,
 };
 
 const InteractionTypeRequest = enum(u3) {
@@ -103,12 +103,12 @@ const ApplicationCommandDataRequest = struct {
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-response-object
 const InteractionResponse = struct {
     type: InteractionTypeResponse,
-    data: ?ApplicationCommandDataResponse,
+    data: ?ApplicationCommandDataResponse = null,
 };
 
 const ApplicationCommandDataResponse = struct {
-    flags: ?u32,
-    components: ?[]const MessageComponentResponse,
+    flags: ?u32 = null,
+    components: ?[]const MessageComponentResponse = null,
 };
 
 const MessageComponentResponse = struct {
