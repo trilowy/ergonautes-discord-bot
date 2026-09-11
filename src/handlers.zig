@@ -62,8 +62,21 @@ pub fn interactions(ctx: *RequestContext, req: *httpz.Request, res: *httpz.Respo
                         .flags = InteractionFlagsResponse.is_components_v2,
                         .components = &[_]MessageComponentResponse{
                             .{
-                                .type = ComponentTypeResponse.text_display,
-                                .content = "Coin ! 🦆",
+                                .type = ComponentTypeResponse.container,
+                                .components = &[_]MessageComponentResponse{
+                                    .{
+                                        .type = ComponentTypeResponse.text_display,
+                                        .content = "# Coin ! 🦆",
+                                    },
+                                    .{
+                                        .type = ComponentTypeResponse.text_display,
+                                        .content = "Coin, coin",
+                                    },
+                                    .{
+                                        .type = ComponentTypeResponse.text_display,
+                                        .content = "Quack.",
+                                    },
+                                },
                             },
                         },
                     },
@@ -113,7 +126,8 @@ const ApplicationCommandDataResponse = struct {
 
 const MessageComponentResponse = struct {
     type: ComponentTypeResponse,
-    content: []const u8,
+    content: ?[]const u8 = null,
+    components: ?[]const MessageComponentResponse = null,
 };
 
 const InteractionTypeResponse = enum(u4) {
@@ -147,8 +161,47 @@ const InteractionFlagsResponse = struct {
     pub const is_components_v2: u32 = 1 << 15;
 };
 
-const ComponentTypeResponse = enum(u4) {
+const ComponentTypeResponse = enum(u5) {
+    /// Container to display a row of interactive components
+    action_row = 1,
+    /// Button object
+    button = 2,
+    /// Select menu for picking from defined text options
+    string_select = 3,
+    /// Text input object
+    text_input = 4,
+    /// Select menu for users
+    user_select = 5,
+    /// Select menu for roles
+    role_select = 6,
+    /// Select menu for mentionables (users and roles)
+    mentionable_select = 7,
+    /// Select menu for channels
+    channel_select = 8,
+    /// Container to display text alongside an accessory component
+    section = 9,
+    /// Markdown text
     text_display = 10,
+    /// Small image that can be used as an accessory
+    thumbnail = 11,
+    /// Display images and other media
+    media_gallery = 12,
+    /// Displays an attached file
+    file = 13,
+    /// Component to add vertical padding between other components
+    separator = 14,
+    /// Container that visually groups a set of components
+    container = 17,
+    /// Container associating a label and description with a component
+    label = 18,
+    /// Component for uploading files
+    file_upload = 19,
+    /// Single-choice set of options
+    radio_group = 21,
+    /// Multi-selectable group of checkboxes
+    checkbox_group = 22,
+    /// Single checkbox for yes/no choice
+    checkbox = 23,
 
     pub fn jsonStringify(self: *const @This(), jw: anytype) !void {
         try jw.write(@intFromEnum(self.*));
