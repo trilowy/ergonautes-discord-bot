@@ -13,18 +13,21 @@ pub fn interactions(ctx: *RequestContext, req: *httpz.Request, res: *httpz.Respo
         res.status = 401;
         return;
     };
+    log.info("'X-Signature-Ed25519' header: '{s}'", .{signature});
 
     const timestamp = req.header("x-signature-timestamp") orelse {
         log.warn("Missing 'X-Signature-Timestamp' header", .{});
         res.status = 401;
         return;
     };
+    log.info("'X-Signature-Timestamp' header: '{s}'", .{timestamp});
 
     const body = req.body() orelse {
         log.warn("Missing body", .{});
         res.status = 401;
         return;
     };
+    log.info("Body: '{s}'", .{body});
 
     ctx.app.auth_service.verifyDiscordRequest(
         signature,
