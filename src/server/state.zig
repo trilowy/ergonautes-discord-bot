@@ -17,9 +17,9 @@ pub const App = struct {
 
         try action(&ctx, req, res);
 
-        const elapsed_ms = start.untilNow(self.io, .awake).toMilliseconds();
+        const elapsed_us = start.untilNow(self.io, .awake).toMicroseconds();
 
-        log.debug("{} {s} {d}ms", .{ req.method, req.url.path, elapsed_ms });
+        log.debug("{} {s} {d}µs", .{ req.method, req.url.path, elapsed_us });
     }
 
     pub fn notFound(_: *App, req: *httpz.Request, res: *httpz.Response) !void {
