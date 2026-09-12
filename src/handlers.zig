@@ -2,6 +2,7 @@ const std = @import("std");
 const httpz = @import("httpz");
 const RequestContext = @import("server/state.zig").RequestContext;
 const log = @import("server/logger.zig");
+const documentations = @import("doc.zig").documentations;
 
 pub fn health(_: *RequestContext, _: *httpz.Request, res: *httpz.Response) !void {
     try res.json(.{ .status = "UP" }, .{});
@@ -106,6 +107,12 @@ pub fn interactions(ctx: *RequestContext, req: *httpz.Request, res: *httpz.Respo
                         },
                     };
 
+                    const content = findDocContent(doc_name) orelse {
+                        log.warn("Missing documentation '{s}'", .{doc_name});
+                        res.status = 400;
+                        return;
+                    };
+
                     const interaction_response = InteractionResponse{
                         .type = InteractionTypeResponse.channel_message_with_source,
                         .data = .{
@@ -116,15 +123,7 @@ pub fn interactions(ctx: *RequestContext, req: *httpz.Request, res: *httpz.Respo
                                     .components = &[_]MessageComponentResponse{
                                         .{
                                             .type = ComponentTypeResponse.text_display,
-                                            .content = "# Coin ! 🦆",
-                                        },
-                                        .{
-                                            .type = ComponentTypeResponse.text_display,
-                                            .content = doc_name,
-                                        },
-                                        .{
-                                            .type = ComponentTypeResponse.text_display,
-                                            .content = "Quack.",
+                                            .content = content,
                                         },
                                     },
                                 },
@@ -141,6 +140,15 @@ pub fn interactions(ctx: *RequestContext, req: *httpz.Request, res: *httpz.Respo
             res.status = 400;
         },
     }
+}
+
+fn findDocContent(doc_name: []const u8) ?[]const u8 {
+    for (documentations) |documentation| {
+        if (std.mem.eql(u8, documentation.name, doc_name)) {
+            return documentation.content;
+        }
+    }
+    return null;
 }
 
 /// 1-32 characters

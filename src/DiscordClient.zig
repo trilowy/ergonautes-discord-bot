@@ -3,6 +3,7 @@ const log = @import("server/logger.zig");
 const DiscordConfig = @import("server/config.zig").DiscordConfig;
 const Headers = std.http.Client.Request.Headers;
 const Command = @import("handlers.zig").Command;
+const documentations = @import("doc.zig").documentations;
 
 const Self = @This();
 
@@ -13,6 +14,20 @@ command_url: []const u8,
 
 const discord_user_agent = Headers.Value{ .override = "DiscordBot (https://ziglang.org, 0.16.0)" };
 const json_content_type = Headers.Value{ .override = "application/json" };
+
+// TODO: 25 might not be enough, search other completion command
+const choices = blk: {
+    var doc_choices: [documentations.len]CommandOptionChoiceRequest = undefined;
+
+    for (documentations, 0..) |documentation, i| {
+        doc_choices[i] = .{
+            .name = documentation.name,
+            .value = .{ .string = documentation.name },
+        };
+    }
+
+    break :blk doc_choices;
+};
 
 pub fn init(
     io: std.Io,
@@ -83,18 +98,7 @@ pub fn registerCommandsToDiscord(
                     .name = "nom",
                     .description = "Choisis la documentation que tu veux afficher dans le canal",
                     .required = true,
-                    .choices = &[_]CommandOptionChoiceRequest{
-                        // TODO: to generate with comptime
-                        // TODO: 25 might not be enough, search other completion command
-                        .{
-                            .name = "doc1",
-                            .value = .{ .string = "doc1" },
-                        },
-                        .{
-                            .name = "doc2",
-                            .value = .{ .string = "doc2" },
-                        },
-                    },
+                    .choices = &choices,
                 },
             },
             .integration_types = &[_]ApplicationIntegrationType{
