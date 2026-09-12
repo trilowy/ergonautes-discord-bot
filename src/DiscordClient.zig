@@ -3,7 +3,6 @@ const log = @import("server/logger.zig");
 const DiscordConfig = @import("server/config.zig").DiscordConfig;
 const Headers = std.http.Client.Request.Headers;
 const Command = @import("handlers.zig").Command;
-const documentations = @import("doc").documentations;
 
 const Self = @This();
 
@@ -14,20 +13,6 @@ command_url: []const u8,
 
 const discord_user_agent = Headers.Value{ .override = "DiscordBot (https://ziglang.org, 0.16.0)" };
 const json_content_type = Headers.Value{ .override = "application/json" };
-
-// TODO: 25 might not be enough, search other completion command
-const choices = blk: {
-    var doc_choices: [documentations.len]CommandOptionChoiceRequest = undefined;
-
-    for (documentations, 0..) |documentation, i| {
-        doc_choices[i] = .{
-            .name = documentation.name,
-            .value = .{ .string = documentation.name },
-        };
-    }
-
-    break :blk doc_choices;
-};
 
 pub fn init(
     io: std.Io,
@@ -98,7 +83,7 @@ pub fn registerCommandsToDiscord(
                     .name = "nom",
                     .description = "Choisis la documentation que tu veux afficher dans le canal",
                     .required = true,
-                    .choices = &choices,
+                    .autocomplete = true,
                 },
             },
             .integration_types = &[_]ApplicationIntegrationType{
@@ -174,6 +159,7 @@ const CommandOptionRequest = struct {
     required: ?bool = null,
     /// Max 25
     choices: ?[]const CommandOptionChoiceRequest = null,
+    autocomplete: ?bool = null,
 };
 
 const ApplicationIntegrationType = enum(u1) {
@@ -218,13 +204,13 @@ const CommandOptionType = enum(u4) {
     }
 };
 
-const CommandOptionChoiceRequest = struct {
+pub const CommandOptionChoiceRequest = struct {
     /// 1-100 character
     name: []const u8,
     value: CommandOptionChoiceValue,
 };
 
-const CommandOptionChoiceValue = union(enum) {
+pub const CommandOptionChoiceValue = union(enum) {
     /// Max 100 characters
     string: []const u8,
     /// Any integer between -2^53+1 and 2^53-1

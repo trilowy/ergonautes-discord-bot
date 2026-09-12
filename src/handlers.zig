@@ -3,6 +3,7 @@ const httpz = @import("httpz");
 const RequestContext = @import("server/state.zig").RequestContext;
 const log = @import("server/logger.zig");
 const documentations = @import("doc").documentations;
+const CommandOptionChoiceRequest = @import("DiscordClient.zig").CommandOptionChoiceRequest;
 
 pub fn health(_: *RequestContext, _: *httpz.Request, res: *httpz.Response) !void {
     try res.json(.{ .status = "UP" }, .{});
@@ -135,6 +136,48 @@ pub fn interactions(ctx: *RequestContext, req: *httpz.Request, res: *httpz.Respo
                 },
             }
         },
+        .application_command_autocomplete => {
+            const data = interaction.data orelse {
+                log.warn("Autocomplete: missing data", .{});
+                res.status = 400;
+                return;
+            };
+
+            const options = data.options orelse {
+                log.warn("Autocomplete: missing data.options", .{});
+                res.status = 400;
+                return;
+            };
+
+            if (options.len == 0) {
+                log.warn("Autocomplete: no data.options", .{});
+                res.status = 400;
+                return;
+            }
+
+            const option_value = options[0].value orelse
+                ApplicationCommandDataOptionValueRequest{ .string = "" };
+
+            const search = switch (option_value) {
+                .string => |v| v,
+                else => {
+                    log.warn("Autocomplete: only on string", .{});
+                    res.status = 400;
+                    return;
+                },
+            };
+
+            const choices = try findDocAutocomplete(res.arena, search);
+
+            const interaction_response = InteractionResponse{
+                .type = InteractionTypeResponse.application_command_autocomplete_result,
+                .data = .{
+                    .choices = choices,
+                },
+            };
+
+            try res.json(interaction_response, .{});
+        },
         else => {
             log.warn("Unknown interaction", .{});
             res.status = 400;
@@ -149,6 +192,30 @@ fn findDocContent(doc_name: []const u8) ?[]const u8 {
         }
     }
     return null;
+}
+
+fn findDocAutocomplete(
+    allocator: std.mem.Allocator,
+    search: []const u8,
+) ![]CommandOptionChoiceRequest {
+    var search_results = std.ArrayList(CommandOptionChoiceRequest).empty;
+
+    var i: usize = 0;
+    for (documentations) |documentation| {
+        if (std.mem.indexOf(u8, documentation.name, search) != null) {
+            const choice = CommandOptionChoiceRequest{
+                .name = documentation.name,
+                .value = .{ .string = documentation.name },
+            };
+            try search_results.append(allocator, choice);
+
+            i += 1;
+            // Max 25 autocomplete results
+            if (i == 25) break;
+        }
+    }
+
+    return search_results.toOwnedSlice(allocator);
 }
 
 /// 1-32 characters
@@ -178,6 +245,7 @@ const ApplicationCommandDataRequest = struct {
 
 const ApplicationCommandDataOptionRequest = struct {
     value: ?ApplicationCommandDataOptionValueRequest,
+    focused: ?bool = null,
 };
 
 const ApplicationCommandDataOptionValueRequest = union(enum) {
@@ -212,6 +280,8 @@ const InteractionResponse = struct {
 const ApplicationCommandDataResponse = struct {
     flags: ?u32 = null,
     components: ?[]const MessageComponentResponse = null,
+    /// For autocomplete, max 25
+    choices: ?[]const CommandOptionChoiceRequest = null,
 };
 
 const MessageComponentResponse = struct {
