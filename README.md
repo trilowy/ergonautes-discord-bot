@@ -34,7 +34,7 @@ returns.
   ```
 - Or for reload on file change:
   ```sh
-  watchexec --restart --exts zig --watch src/ -- "zig build run"
+  watchexec --restart --exts zig,md --watch . -- "zig build run"
   ```
 - Go to http://127.0.0.1:3000/
 
