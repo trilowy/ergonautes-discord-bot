@@ -3,7 +3,7 @@ const log = @import("server/logger.zig");
 const DiscordConfig = @import("server/config.zig").DiscordConfig;
 const Headers = std.http.Client.Request.Headers;
 const Command = @import("handlers.zig").Command;
-const documentations = @import("doc.zig").documentations;
+const documentations = @import("doc").documentations;
 
 const Self = @This();
 

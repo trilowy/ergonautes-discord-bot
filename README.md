@@ -4,6 +4,20 @@ Discord commands to invoque on Ergonautes Discord to get help responses on
 frequently asked questions.
 
 
+## Documentation
+
+It auto-discovers documentation files at compile-time in `doc/` directory and
+embed them in the server binary.
+
+The name of the file is the name of the parameter in the Discord slash command,
+keep it under 32 char.
+
+The file should be in Markdown (`.md` extension).
+
+Do not limit lines length in these files as Discord will render these line
+returns.
+
+
 ## Requirements
 
 - [Zig] 0.16.0

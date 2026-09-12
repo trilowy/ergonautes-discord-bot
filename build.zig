@@ -32,6 +32,15 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     };
 
+    // Add documentation into binary
+    const doc_gen_path = generateDocumentations(b);
+    const doc_gen = b.createModule(.{
+        .root_source_file = doc_gen_path,
+        .target = target,
+        .optimize = optimize,
+    });
+    exe_mod.addImport("doc", doc_gen);
+
     const httpz = b.dependency("httpz", dep_opts);
     exe_mod.addImport("httpz", httpz.module("httpz"));
 
@@ -88,4 +97,94 @@ pub fn build(b: *std.Build) void {
     // running the unit tests.
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_exe_unit_tests.step);
+}
+
+fn generateDocumentations(b: *std.Build) std.Build.LazyPath {
+    const io = b.graph.io;
+
+    var doc_dir = b.build_root.handle.openDir(io, "doc", .{ .iterate = true }) catch |err| {
+        std.debug.panic("Failed to open 'doc' dir: {}", .{err});
+    };
+    defer doc_dir.close(io);
+
+    var zig_file = std.ArrayList(u8).empty;
+    defer zig_file.deinit(b.allocator);
+
+    zig_file.appendSlice(b.allocator,
+        \\pub const Documentation = struct {
+        \\    name: []const u8,
+        \\    content: []const u8,
+        \\};
+        \\
+        \\pub const documentations = &[_]Documentation{
+        \\
+    ) catch @panic("Out of memory");
+
+    var it = doc_dir.iterate();
+
+    while (it.next(io) catch |err| {
+        std.debug.panic("Failed to iterate 'doc' dir: {}", .{err});
+    }) |entry| {
+        if (entry.kind != .file) {
+            continue;
+        }
+
+        if (!std.mem.endsWith(u8, entry.name, ".md")) {
+            continue;
+        }
+
+        const name = entry.name[0 .. entry.name.len - ".md".len];
+
+        const content = doc_dir.readFileAlloc(
+            io,
+            entry.name,
+            b.allocator,
+            .unlimited,
+        ) catch |err| {
+            std.debug.panic("Failed to read doc/{s}: {}", .{ entry.name, err });
+        };
+        defer b.allocator.free(content);
+
+        const escaped_content = escapeZigString(b.allocator, content) catch @panic("Out of memory");
+        defer b.allocator.free(escaped_content);
+
+        const doc = std.fmt.allocPrint(
+            b.allocator,
+            \\    .{{
+            \\        .name = "{s}",
+            \\        .content = "{s}",
+            \\    }},
+            \\
+        ,
+            .{ name, escaped_content },
+        ) catch @panic("Out of memory");
+        defer b.allocator.free(doc);
+
+        zig_file.appendSlice(b.allocator, doc) catch @panic("Out of memory");
+    }
+
+    zig_file.appendSlice(b.allocator,
+        \\};
+        \\
+    ) catch @panic("Out of memory");
+
+    return b.addWriteFiles().add("doc_gen.zig", zig_file.items);
+}
+
+fn escapeZigString(allocator: std.mem.Allocator, content: []const u8) ![]u8 {
+    var escaped = std.ArrayList(u8).empty;
+    errdefer escaped.deinit(allocator);
+
+    for (content) |c| {
+        switch (c) {
+            '"' => try escaped.appendSlice(allocator, "\\\""),
+            '\\' => try escaped.appendSlice(allocator, "\\\\"),
+            '\n' => try escaped.appendSlice(allocator, "\\n"),
+            '\r' => try escaped.appendSlice(allocator, "\\r"),
+            '\t' => try escaped.appendSlice(allocator, "\\t"),
+            else => try escaped.append(allocator, c),
+        }
+    }
+
+    return escaped.toOwnedSlice(allocator);
 }

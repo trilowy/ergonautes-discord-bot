@@ -2,7 +2,7 @@ const std = @import("std");
 const httpz = @import("httpz");
 const RequestContext = @import("server/state.zig").RequestContext;
 const log = @import("server/logger.zig");
-const documentations = @import("doc.zig").documentations;
+const documentations = @import("doc").documentations;
 
 pub fn health(_: *RequestContext, _: *httpz.Request, res: *httpz.Response) !void {
     try res.json(.{ .status = "UP" }, .{});
