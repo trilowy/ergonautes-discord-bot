@@ -2,6 +2,7 @@ const std = @import("std");
 const log = @import("server/logger.zig");
 const DiscordConfig = @import("server/config.zig").DiscordConfig;
 const Headers = std.http.Client.Request.Headers;
+const Command = @import("handlers.zig").Command;
 
 const Self = @This();
 
@@ -59,9 +60,43 @@ pub fn registerCommandsToDiscord(
 
     const request = [_]CommandRequest{
         .{
-            .name = "test",
-            .description = "Basic command",
             .type = .chat_input,
+            .name = .coin,
+            .description = "Discute avec QuackBot",
+            .integration_types = &[_]ApplicationIntegrationType{
+                .guild_install,
+                .user_install,
+            },
+            .contexts = &[_]InteractionContextType{
+                .guild,
+                .bot_dm,
+                .private_channel,
+            },
+        },
+        .{
+            .type = .chat_input,
+            .name = .doc,
+            .description = "Demande de l’aide à QuackBot à propos des claviers",
+            .options = &[_]CommandOptionRequest{
+                .{
+                    .type = .string,
+                    .name = "nom",
+                    .description = "Choisis la documentation que tu veux afficher dans le canal",
+                    .required = true,
+                    .choices = &[_]CommandOptionChoiceRequest{
+                        // TODO: to generate with comptime
+                        // TODO: 25 might not be enough, search other completion command
+                        .{
+                            .name = "doc1",
+                            .value = .{ .string = "doc1" },
+                        },
+                        .{
+                            .name = "doc2",
+                            .value = .{ .string = "doc2" },
+                        },
+                    },
+                },
+            },
             .integration_types = &[_]ApplicationIntegrationType{
                 .guild_install,
                 .user_install,
@@ -100,12 +135,15 @@ pub fn registerCommandsToDiscord(
     );
 }
 
+/// https://docs.discord.com/developers/interactions/application-commands#application-command-object
 const CommandRequest = struct {
-    name: []const u8,
+    type: CommandType,
+    name: Command,
+    /// 1-100 character
     description: []const u8,
-    type: ?CommandType,
-    integration_types: ?[]const ApplicationIntegrationType,
-    contexts: ?[]const InteractionContextType,
+    options: ?[]const CommandOptionRequest = null,
+    integration_types: ?[]const ApplicationIntegrationType = null,
+    contexts: ?[]const InteractionContextType = null,
 };
 
 const CommandType = enum(u3) {
@@ -121,6 +159,17 @@ const CommandType = enum(u3) {
     pub fn jsonStringify(self: *const @This(), jw: anytype) !void {
         try jw.write(@intFromEnum(self.*));
     }
+};
+
+const CommandOptionRequest = struct {
+    type: CommandOptionType,
+    /// 1-32 character
+    name: []const u8,
+    /// 1-100 character
+    description: []const u8,
+    required: ?bool = null,
+    /// Max 25
+    choices: ?[]const CommandOptionChoiceRequest = null,
 };
 
 const ApplicationIntegrationType = enum(u1) {
@@ -144,5 +193,45 @@ const InteractionContextType = enum(u2) {
 
     pub fn jsonStringify(self: *const @This(), jw: anytype) !void {
         try jw.write(@intFromEnum(self.*));
+    }
+};
+
+const CommandOptionType = enum(u4) {
+    sub_command = 1,
+    sub_command_group = 2,
+    string = 3,
+    integer = 4,
+    boolean = 5,
+    user = 6,
+    channel = 7,
+    role = 8,
+    mentionable = 9,
+    number = 10,
+    attachment = 11,
+
+    pub fn jsonStringify(self: *const @This(), jw: anytype) !void {
+        try jw.write(@intFromEnum(self.*));
+    }
+};
+
+const CommandOptionChoiceRequest = struct {
+    /// 1-100 character
+    name: []const u8,
+    value: CommandOptionChoiceValue,
+};
+
+const CommandOptionChoiceValue = union(enum) {
+    /// Max 100 characters
+    string: []const u8,
+    /// Any integer between -2^53+1 and 2^53-1
+    int: i64,
+    /// Any double between -2^53 and 2^53
+    double: f64,
+
+    /// Print only value, not tag name
+    pub fn jsonStringify(self: *const @This(), jw: anytype) !void {
+        switch (self.*) {
+            inline else => |value| try jw.write(value),
+        }
     }
 };

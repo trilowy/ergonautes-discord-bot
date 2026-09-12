@@ -54,38 +54,86 @@ pub fn interactions(ctx: *RequestContext, req: *httpz.Request, res: *httpz.Respo
                 return;
             };
 
-            if (std.mem.eql(u8, data.name, "test")) {
-                // Send a message into the channel where command was triggered from
-                const interaction_response = InteractionResponse{
-                    .type = InteractionTypeResponse.channel_message_with_source,
-                    .data = .{
-                        .flags = InteractionFlagsResponse.is_components_v2,
-                        .components = &[_]MessageComponentResponse{
-                            .{
-                                .type = ComponentTypeResponse.container,
-                                .components = &[_]MessageComponentResponse{
-                                    .{
-                                        .type = ComponentTypeResponse.text_display,
-                                        .content = "# Coin ! 🦆",
-                                    },
-                                    .{
-                                        .type = ComponentTypeResponse.text_display,
-                                        .content = "Coin, coin",
-                                    },
-                                    .{
-                                        .type = ComponentTypeResponse.text_display,
-                                        .content = "Quack.",
+            const command = std.meta.stringToEnum(Command, data.name) orelse {
+                log.warn("Unknown command", .{});
+                res.status = 400;
+                return;
+            };
+
+            // Send a message into the channel where command was triggered from
+            switch (command) {
+                .coin => {
+                    const interaction_response = InteractionResponse{
+                        .type = InteractionTypeResponse.channel_message_with_source,
+                        .data = .{
+                            .flags = InteractionFlagsResponse.is_components_v2,
+                            .components = &[_]MessageComponentResponse{
+                                .{
+                                    .type = ComponentTypeResponse.text_display,
+                                    .content = "Coin ! 🦆",
+                                },
+                            },
+                        },
+                    };
+
+                    try res.json(interaction_response, .{});
+                },
+                .doc => {
+                    const options = data.options orelse {
+                        log.warn("Missing data.options", .{});
+                        res.status = 400;
+                        return;
+                    };
+
+                    if (options.len == 0) {
+                        log.warn("No data.options", .{});
+                        res.status = 400;
+                        return;
+                    }
+
+                    const option_value = options[0].value orelse {
+                        log.warn("Missing data.options[0].value", .{});
+                        res.status = 400;
+                        return;
+                    };
+
+                    const doc_name = switch (option_value) {
+                        .string => |v| v,
+                        else => {
+                            log.warn("Missing data.options[0].value", .{});
+                            res.status = 400;
+                            return;
+                        },
+                    };
+
+                    const interaction_response = InteractionResponse{
+                        .type = InteractionTypeResponse.channel_message_with_source,
+                        .data = .{
+                            .flags = InteractionFlagsResponse.is_components_v2,
+                            .components = &[_]MessageComponentResponse{
+                                .{
+                                    .type = ComponentTypeResponse.container,
+                                    .components = &[_]MessageComponentResponse{
+                                        .{
+                                            .type = ComponentTypeResponse.text_display,
+                                            .content = "# Coin ! 🦆",
+                                        },
+                                        .{
+                                            .type = ComponentTypeResponse.text_display,
+                                            .content = doc_name,
+                                        },
+                                        .{
+                                            .type = ComponentTypeResponse.text_display,
+                                            .content = "Quack.",
+                                        },
                                     },
                                 },
                             },
                         },
-                    },
-                };
+                    };
 
-                try res.json(interaction_response, .{});
-            } else {
-                log.warn("Unknown command", .{});
-                res.status = 400;
+                    try res.json(interaction_response, .{});
+                },
             }
         },
         else => {
@@ -94,6 +142,12 @@ pub fn interactions(ctx: *RequestContext, req: *httpz.Request, res: *httpz.Respo
         },
     }
 }
+
+/// 1-32 characters
+pub const Command = enum {
+    coin,
+    doc,
+};
 
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object
 const InteractionRequest = struct {
@@ -111,6 +165,34 @@ const InteractionTypeRequest = enum(u3) {
 
 const ApplicationCommandDataRequest = struct {
     name: []const u8,
+    options: ?[]const ApplicationCommandDataOptionRequest = null,
+};
+
+const ApplicationCommandDataOptionRequest = struct {
+    value: ?ApplicationCommandDataOptionValueRequest,
+};
+
+const ApplicationCommandDataOptionValueRequest = union(enum) {
+    string: []const u8,
+    integer: i64,
+    double: f64,
+    boolean: bool,
+
+    pub fn jsonParse(
+        allocator: std.mem.Allocator,
+        source: anytype,
+        options: std.json.ParseOptions,
+    ) !ApplicationCommandDataOptionValueRequest {
+        const json = try std.json.innerParse(std.json.Value, allocator, source, options);
+
+        return switch (json) {
+            .string => |v| .{ .string = v },
+            .integer => |v| .{ .integer = v },
+            .float => |v| .{ .double = v },
+            .bool => |v| .{ .boolean = v },
+            else => error.UnexpectedToken,
+        };
+    }
 };
 
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-response-object
