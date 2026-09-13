@@ -23,7 +23,7 @@ pub fn main(init: std.process.Init) !void {
     defer discord_client.deinit();
 
     // Register Discord commands at server startup
-    try discord_client.registerCommandsToDiscord(init.gpa);
+    // try discord_client.registerCommandsToDiscord(init.gpa);
 
     const auth_service = try AuthService.init(config.discord);
 
