@@ -1,4 +1,4 @@
-# [Couche *(layer)*](https://ergol.org/ressources/glossaire/#couche-def)
+# [Couche (*layer*)](https://ergol.org/ressources/glossaire/#couche-def)
 
 Abstraction pour pouvoir disposer plusieurs caractères sur une même touche.
 
