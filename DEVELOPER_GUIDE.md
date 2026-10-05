@@ -73,3 +73,10 @@ do not launch the CI.
 There is a bunch of manual configurations I had to do on the server it is
 deployed on, and on Discord, but I won’t detail that here in public. In general,
 we need an HTTPS URL with a valid certificate.
+
+Boost a contributor command keeps in SQLite boosted user and the end date of
+the boost. Once a day, it goes on all expired boosts in database and remove the
+role and the database entry.
+
+To know what role ID a role named `Contrib’` has on a Discord server, it look
+it up once with Discord API then store it in memory.

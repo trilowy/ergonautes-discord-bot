@@ -82,19 +82,19 @@ pub fn interactions(ctx: *RequestContext, req: *httpz.Request, res: *httpz.Respo
                 },
                 .doc => {
                     const options = data.options orelse {
-                        log.warn("Missing data.options", .{});
+                        log.warn("Doc: missing data.options", .{});
                         res.status = 400;
                         return;
                     };
 
                     if (options.len == 0) {
-                        log.warn("No data.options", .{});
+                        log.warn("Doc: no data.options", .{});
                         res.status = 400;
                         return;
                     }
 
                     const option_value = options[0].value orelse {
-                        log.warn("Missing data.options[0].value", .{});
+                        log.warn("Doc: missing data.options[0].value", .{});
                         res.status = 400;
                         return;
                     };
@@ -102,14 +102,14 @@ pub fn interactions(ctx: *RequestContext, req: *httpz.Request, res: *httpz.Respo
                     const doc_name = switch (option_value) {
                         .string => |v| v,
                         else => {
-                            log.warn("Missing data.options[0].value", .{});
+                            log.warn("Doc: missing data.options[0].value", .{});
                             res.status = 400;
                             return;
                         },
                     };
 
                     const content = findDocContent(doc_name) orelse {
-                        log.warn("Missing documentation '{s}'", .{doc_name});
+                        log.warn("Doc: missing documentation '{s}'", .{doc_name});
                         res.status = 400;
                         return;
                     };
@@ -133,6 +133,63 @@ pub fn interactions(ctx: *RequestContext, req: *httpz.Request, res: *httpz.Respo
                     };
 
                     try res.json(interaction_response, .{});
+                },
+                .contrib => {
+                    const guild_id = interaction.guild_id orelse {
+                        log.warn("Contrib: missing guild_id", .{});
+                        res.status = 400;
+                        return;
+                    };
+
+                    const options = data.options orelse {
+                        log.warn("Contrib: missing data.options", .{});
+                        res.status = 400;
+                        return;
+                    };
+
+                    if (options.len == 0) {
+                        log.warn("Contrib: no data.options", .{});
+                        res.status = 400;
+                        return;
+                    }
+
+                    const option_value = options[0].value orelse {
+                        log.warn("Contrib: missing data.options[0].value", .{});
+                        res.status = 400;
+                        return;
+                    };
+
+                    const user_id = switch (option_value) {
+                        .string => |v| v,
+                        else => {
+                            log.warn("Contrib: missing data.options[0].value", .{});
+                            res.status = 400;
+                            return;
+                        },
+                    };
+
+                    const contrib_role_id = try ctx.app.command_service.getContribRoleId(guild_id);
+
+                    // TODO:
+                    _ = contrib_role_id;
+                    _ = user_id;
+                },
+                .@"Récompense une contribution" => {
+                    const guild_id = interaction.guild_id orelse {
+                        log.warn("Contrib click: missing guild_id", .{});
+                        res.status = 400;
+                        return;
+                    };
+
+                    const user_id = data.target_id orelse {
+                        log.warn("Contrib click: missing data.target_id", .{});
+                        res.status = 400;
+                        return;
+                    };
+
+                    // TODO:
+                    _ = guild_id;
+                    _ = user_id;
                 },
             }
         },
@@ -222,12 +279,15 @@ fn findDocAutocomplete(
 pub const Command = enum {
     coin,
     doc,
+    contrib,
+    @"Récompense une contribution", // contrib, with right click on user
 };
 
 // https://docs.discord.com/developers/interactions/receiving-and-responding#interaction-object
 const InteractionRequest = struct {
     type: InteractionTypeRequest,
     data: ?ApplicationCommandDataRequest = null,
+    guild_id: ?[]const u8 = null,
 };
 
 const InteractionTypeRequest = enum(u3) {
@@ -241,6 +301,7 @@ const InteractionTypeRequest = enum(u3) {
 const ApplicationCommandDataRequest = struct {
     name: []const u8,
     options: ?[]const ApplicationCommandDataOptionRequest = null,
+    target_id: ?[]const u8 = null,
 };
 
 const ApplicationCommandDataOptionRequest = struct {

@@ -96,6 +96,25 @@ pub fn registerCommandsToDiscord(
                 .private_channel,
             },
         },
+        .{
+            .type = .chat_input,
+            .name = .contrib,
+            .description = "Récompense une contribution",
+            .default_member_permissions = CommandPermission.manage_roles,
+            .options = &[_]CommandOptionRequest{
+                .{
+                    .type = .user,
+                    .name = "pseudo",
+                    .description = "Pseudo Discord à qui attribuer la récompense",
+                    .required = true,
+                },
+            },
+        },
+        .{
+            .type = .user,
+            .name = .@"Récompense une contribution",
+            .default_member_permissions = CommandPermission.manage_roles,
+        },
     };
 
     const payload = try std.json.Stringify.valueAlloc(allocator, request, .{});
@@ -129,10 +148,16 @@ const CommandRequest = struct {
     type: CommandType,
     name: Command,
     /// 1-100 character
-    description: []const u8,
+    description: ?[]const u8 = null,
+    /// https://docs.discord.com/developers/topics/permissions
+    default_member_permissions: ?u64 = null,
     options: ?[]const CommandOptionRequest = null,
     integration_types: ?[]const ApplicationIntegrationType = null,
     contexts: ?[]const InteractionContextType = null,
+};
+
+const CommandPermission = struct {
+    const manage_roles: u64 = 1 << 28;
 };
 
 const CommandType = enum(u3) {

@@ -3,10 +3,12 @@ const httpz = @import("httpz");
 const log = @import("../server/logger.zig");
 const DiscordConfig = @import("../server/config.zig").DiscordConfig;
 const AuthService = @import("../AuthService.zig");
+const CommandService = @import("../CommandService.zig");
 
 pub const App = struct {
     io: std.Io,
     auth_service: AuthService,
+    command_service: CommandService,
 
     pub fn dispatch(self: *App, action: httpz.Action(*RequestContext), req: *httpz.Request, res: *httpz.Response) !void {
         var start = std.Io.Timestamp.now(self.io, .awake);

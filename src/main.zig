@@ -8,6 +8,7 @@ const loadConfig = config_mod.loadConfig;
 const handlers = @import("handlers.zig");
 const DiscordClient = @import("DiscordClient.zig");
 const AuthService = @import("AuthService.zig");
+const CommandService = @import("CommandService.zig");
 
 pub fn main(init: std.process.Init) !void {
     const config = try loadConfig(init.environ_map);
@@ -27,9 +28,16 @@ pub fn main(init: std.process.Init) !void {
 
     const auth_service = try AuthService.init(config.discord);
 
+    const command_service = CommandService{
+        .arena = init.arena,
+        .discord_client = &discord_client,
+        .contrib_role_name = config.discord.contrib_role_name,
+    };
+
     var app = App{
         .io = init.io,
         .auth_service = auth_service,
+        .command_service = command_service,
     };
 
     var server = try httpz.Server(*App).init(

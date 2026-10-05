@@ -11,5 +11,6 @@
         .public_key = "default_public_key",
         .token = "default_token",
         .api_url = "https://discord.com/api/v10",
+        .contrib_role_name = "Contrib’",
     },
 }

@@ -41,6 +41,9 @@ pub const DiscordConfig = struct {
 
     /// Discord API URL
     api_url: []const u8,
+
+    /// Contrib’ role name
+    contrib_role_name: []const u8,
 };
 
 const separator = "__";
@@ -89,6 +92,10 @@ pub fn loadConfig(
 
     if (environ_map.get(discord ++ "API_URL")) |api_url| {
         config.discord.api_url = api_url;
+    }
+
+    if (environ_map.get(discord ++ "CONTRIB_ROLE_NAME")) |contrib_role_name| {
+        config.discord.contrib_role_name = contrib_role_name;
     }
 
     return config;
