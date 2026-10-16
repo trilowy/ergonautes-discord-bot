@@ -314,11 +314,11 @@ const InteractionTypeResponse = enum(u4) {
 };
 
 const InteractionFlagsResponse = struct {
-    pub const suppress_embeds: u32 = 1 << 2;
-    pub const ephemeral: u32 = 1 << 6;
-    pub const suppress_notifications: u32 = 1 << 12;
-    pub const is_voice_message: u32 = 1 << 13;
-    pub const is_components_v2: u32 = 1 << 15;
+    const suppress_embeds: u32 = 1 << 2;
+    const ephemeral: u32 = 1 << 6;
+    const suppress_notifications: u32 = 1 << 12;
+    const is_voice_message: u32 = 1 << 13;
+    const is_components_v2: u32 = 1 << 15;
 };
 
 const ComponentTypeResponse = enum(u5) {
