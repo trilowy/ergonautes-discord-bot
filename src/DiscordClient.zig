@@ -143,6 +143,41 @@ pub fn registerCommandsToDiscord(
     );
 }
 
+pub fn findRoleId(
+    self: *Self,
+    allocator: std.mem.Allocator,
+    guild_id: []const u8,
+    role_name: []const u8,
+) ![]const u8 {
+    log.info("Find role named '{s}' for guild ID '{s}'", .{ role_name, guild_id });
+
+    var response_body: std.Io.Writer.Allocating = .init(allocator);
+    defer response_body.deinit();
+
+    const role_url = try std.fmt.allocPrint(
+        allocator,
+        "{s}/guilds/{s}/roles",
+        .{ self.discord.api_url, guild_id },
+    );
+    defer allocator.free(role_url);
+
+    const response = try self.http_client.fetch(.{
+        .location = .{ .url = role_url },
+        .method = .GET,
+        .response_writer = &response_body.writer,
+        .headers = .{
+            .user_agent = discord_user_agent,
+            .authorization = self.authorization_header,
+        },
+    });
+
+    // TODO: find in JSON the ID by its name
+    log.debug(
+        "Response status: {d}, payload: {s}",
+        .{ response.status, response_body.written() },
+    );
+}
+
 /// https://docs.discord.com/developers/interactions/application-commands#application-command-object
 const CommandRequest = struct {
     type: CommandType,

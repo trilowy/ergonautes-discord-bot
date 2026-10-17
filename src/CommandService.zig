@@ -13,6 +13,7 @@ pub fn getContribRoleId(
     guild_id: []const u8,
 ) ![]const u8 {
     return self.guild_id_to_contrib_role_id.get(guild_id) orelse {
+        self.discord_client.findRoleId(self.arena, guild_id, self.contrib_role_name);
         // TODO: call API and store it and return it, if not found on API => error
         // TODO: own the map values to avoid deallocation after the end of API call
         return error.DiscordApiNoContribRoleId;
